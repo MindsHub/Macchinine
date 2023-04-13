@@ -1,108 +1,26 @@
-//! Discover Bluetooth devices and list them.
-/*pub mod discover_services;
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> bluer::Result<()> {
-    discover_services::main_disc().await
-}*/
-
-/* use bluer::{Adapter, AdapterEvent, Address, DeviceEvent, AddressType, rfcomm::{SocketAddr, Stream},};
-use futures::{pin_mut, stream::SelectAll, StreamExt};
-use tokio::io::AsyncWriteExt;
-use std::{collections::HashSet, env, any::Any};
-
-async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
-    let device = adapter.device(addr)?;
-    println!("    Address type:       {}", device.address_type().await?);
-    println!("    Name:               {:?}", device.name().await?);
-    println!("    Icon:               {:?}", device.icon().await?);
-    println!("    Class:              {:?}", device.class().await?);
-    println!("    UUIDs:              {:?}", device.uuids().await?.unwrap_or_default());
-    println!("    Paired:             {:?}", device.is_paired().await?);
-    println!("    Connected:          {:?}", device.is_connected().await?);
-    println!("    Trusted:            {:?}", device.is_trusted().await?);
-    println!("    Modalias:           {:?}", device.modalias().await?);
-    println!("    RSSI:               {:?}", device.rssi().await?);
-    println!("    TX power:           {:?}", device.tx_power().await?);
-    println!("    Manufacturer data:  {:?}", device.manufacturer_data().await?);
-    println!("    Service data:       {:?}", device.service_data().await?);
-    Ok(())
-}
-
-async fn query_all_device_properties(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
-    let device = adapter.device(addr)?;
-    let props = device.all_properties().await?;
-    for prop in props {
-        println!("    {:?}", &prop);
-    }
-    Ok(())
-}
-
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> bluer::Result<()> {
-    //const PSM: u16 = PSM_LE_DYN_START;// + 5;
-    /*let with_changes = env::args().any(|arg| arg == "--changes");
-    let all_properties = env::args().any(|arg| arg == "--all-properties");
-    let filter_addr: HashSet<_> = env::args().filter_map(|arg| arg.parse::<Address>().ok()).collect();*/
-    let address = Address::new([0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A]);
-    //env_logger::init();
-    //let session = bluer::Session::new().await?;
-    //let adapter = session.default_adapter().await?;
-    let session = bluer::Session::new().await?;
-    let adapter = session.default_adapter().await?;
-    
-    let y = adapter.connect_device(address, AddressType::LePublic).await.unwrap();
-    let y: SocketAddr = y.into();
-    println!("{:?} {:?}", y.services().await, y);
-
-    
-    
-    //let target_addr: Address = args[1].parse().expect("invalid address");
-    let target_sa = SocketAddr::new(address, 1);
-
-    println!("Connecting to {:?}", &target_sa);
-    let mut stream = Stream::connect(target_sa).await.expect("connection failed");
-    loop{
-        stream.write("r".as_bytes()).await.unwrap();
-    }
-    todo!()
-*/
-
 //! Connects to the Bluetooth GATT echo service and tests it.
 //! 
- use bluer::{gatt::remote::Characteristic, AdapterEvent, Device, Result};
- use bluer::Uuid;
-const SERVICE_UUID: Uuid = Uuid::from_u128(0x0000ffe000001000800000805f9b34fb);
+mod bluetooth;
+ use bluer::{gatt::remote::Characteristic, Device, Result};
+ use bluer::{Uuid, AdapterEvent};
 
-/// Characteristic UUID for GATT example.
-const CHARACTERISTIC_UUID: Uuid = Uuid::from_u128(0x0000ffe200001000800000805f9b34fb);
-
+use bluetooth::Bluetooth;
 use futures::{pin_mut, StreamExt};
 use rand::Rng;
 use std::time::Duration;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    time::{sleep, timeout},
+    io::AsyncWriteExt,
+    time::sleep,
 };
-use gilrs::{Gilrs, Event, GamepadId};
-fn connect_joistick(gir: &Gilrs)-> Option<GamepadId>{
-    //let mut gilrs = Gilrs::new().unwrap();
-
-    // Iterate over all connected gamepads
-    for (_id, gamepad) in gir.gamepads() {
-        println!("{} is {:?}", gamepad.name(), gamepad.power_info());
-    }
-
-    Some(gir.gamepads().next().unwrap().0)
-}
-
+use gilrs::{Gilrs, Event};
+/*
+const SERVICE_UUID: bluer::Uuid = Uuid::from_u128(0x00000000000000000099aabbccddeeff);
+const CHARACTERISTIC_UUID: bluer::Uuid = Uuid::from_u128(0x0000110c00001000800000805f9b34fb);
 async fn find_our_characteristic(device: &Device) -> Result<Option<Characteristic>> {
     let addr = device.address();
     let uuids = device.uuids().await?.unwrap_or_default();
     //let k = uuids.get(0).unwrap().as_bytes();
     println!("Discovered device {} with service UUIDs: {:?}", addr, uuids);
-    for i in uuids.iter(){
-        println!("{:?}", i.as_bytes());
-    }
     
     let md = device.manufacturer_data().await?;
     println!("    Manufacturer data: {:x?}", &md);
@@ -221,8 +139,26 @@ async fn exercise_characteristic(char: &Characteristic) -> Result<()> {
     Ok(())
 }
 
+
 #[tokio::main]
 async fn main() -> bluer::Result<()> {
+    /*let mut bl = Bluetooth::new();
+    bl.add_device(
+        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+        Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(t));
+    bl.add_device(
+        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+        Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(y));
+        
+    bl.add_device(
+        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
+        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(y));    
+    bl.scan().await.unwrap();*/
+    println!("{}", SERVICE_UUID);
+    println!("{}", CHARACTERISTIC_UUID);
     env_logger::init();
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
@@ -276,5 +212,97 @@ async fn main() -> bluer::Result<()> {
     }
 
     sleep(Duration::from_secs(1)).await;
+    Ok(())
+}*/
+async fn car_control(char: bluer::gatt::remote::Characteristic)->Result<()>{
+    let mut write_io = char.write_io().await?;
+    println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
+    let mut gilrs = Gilrs::new().unwrap();
+    let mut steering= 0.0f64;
+    let mut forward= 0.0f64;
+    let mut rng = rand::thread_rng();
+    loop {
+        sleep(Duration::from_millis(30)).await;
+        // Examine new events
+        while let Some(Event {event, id: _, time: _}) = gilrs.next_event() {
+            match event{
+                gilrs::EventType::AxisChanged(axis, value, _) => {
+                    match axis{
+                        gilrs::Axis::LeftStickX => {
+                                steering = value as f64;
+                        },
+                        gilrs::Axis::LeftStickY => {
+                            forward = value as f64;
+                    },
+                        _ => {}
+                    }
+                },
+                _ => {},
+            }
+        }
+        let diag = forward*forward+steering*steering;
+        let diag = diag.sqrt();
+        println!("{steering:.3}, {forward:.3}, {diag:.3}");
+        if diag < 0.2{
+            let data: Vec<u8> = "s".as_bytes().into_iter().map(|x| x.clone()).collect();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        if forward>0. && rng.gen_bool(forward/diag as f64){
+            let data: Vec<u8> = "f".as_bytes().into_iter().map(|x| x.clone()).collect();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+            //send = send.add("r");
+        }
+        if forward<0. && rng.gen_bool(-forward/diag as f64){
+            let data: Vec<u8> = "b".as_bytes().into_iter().map(|x| x.clone()).collect();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        if steering>0. && rng.gen_bool(steering/diag as f64){
+            let data: Vec<u8> = "r".as_bytes().into_iter().map(|x| x.clone()).collect();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+            //send = send.add("r");
+        }
+        if steering<0. && rng.gen_bool(-steering/diag as f64){
+            let data: Vec<u8> = "l".as_bytes().into_iter().map(|x| x.clone()).collect();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        let data: Vec<u8> = "s".as_bytes().into_iter().map(|x| x.clone()).collect();
+        write_io.write_all(&data).await.expect("write failed");
+        
+        //println!("mandato f {steering}");
+
+    }
+    Ok(())
+}
+async fn car1(char: bluer::gatt::remote::Characteristic){
+    println!("controlling car 1");
+    car_control(char).await.unwrap();
+}
+async fn car2(char: bluer::gatt::remote::Characteristic){
+    println!("controlling car 2");
+    car_control(char).await.unwrap();
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> bluer::Result<()> {
+    let mut bl = Bluetooth::new();
+    bl.add_device(
+        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+        Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(car1));
+    bl.add_device(
+        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+        Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(car2));
+        
+    /*bl.add_device(
+        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
+        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
+        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(y));    */
+    bl.scan().await.unwrap();
     Ok(())
 }
