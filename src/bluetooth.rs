@@ -1,33 +1,31 @@
-use std::{collections::HashMap};
+use std::{collections::{HashMap, HashSet}, pin::Pin};
 
 use bluer::{Uuid, Address, Error, AdapterEvent, Device, gatt::remote::Characteristic};
-use futures::{pin_mut, StreamExt, Future};
+use colored::Colorize;
+use futures::{pin_mut, StreamExt, Future, executor::block_on};
+use tokio::runtime::Handle;
 
 //use crate::{find_our_characteristic, exercise_characteristic, SERVICE_UUID, CHARACTERISTIC_UUID};
-pub trait BlFunc{
+/*pub trait BlFunc{
     fn exec(&self, char: Characteristic);
 }
 impl<F, T> BlFunc for F
 where 
     F: Fn(Characteristic)->T,
     T: Future<Output = ()>{
-fn exec(&self, char: Characteristic)
- {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(
-            async{
-                self(char).await;
-            }
-        )
-}
-}
+    fn exec(&self, char: Characteristic)
+    {
+        let y = Handle::current();
+        
+        y.spawn(future)
+        y.block_on(self(char));
+        
+    }
+}*/
 struct BleDevice{
     characteristic: Uuid,
     address: Address,
-    run: Box<dyn BlFunc>,
+    run: Box<dyn Fn(Characteristic)->Pin<Box<dyn Future<Output = ()>>>>,
 }
 
 
@@ -37,8 +35,10 @@ pub struct Bluetooth{
 }
 
 impl Bluetooth{
-    pub fn add_device(&mut self, service: Uuid, characteristic: Uuid, address: Address, f: Box<dyn BlFunc>){
-        let device= BleDevice{characteristic, address, run: f};
+    pub fn add_device<Fut>(&mut self, service: Uuid, characteristic: Uuid, address: Address, f: impl Fn(Characteristic)->Fut + 'static)
+        where Fut: Future<Output = ()> + 'static, 
+    {
+        let device= BleDevice{characteristic, address, run: Box::new(move |x| { Box::pin(f(x)) })};
         self.accepted.insert(service, device);
     }
     pub fn new()->Self{
@@ -73,7 +73,14 @@ impl Bluetooth{
         println!("    Manufacturer data: {:x?}", &md);
         for uuid in uuids{
             // if not provided
-            if !self.accepted.contains_key(&uuid){
+            let ble_device = self.accepted.get(&uuid);
+            
+            if ble_device.is_none() {
+                continue;
+            }
+            let ble_device = ble_device.unwrap();
+            if addr!=ble_device.address{
+                println!("wrong address");
                 continue;
             }
 
@@ -98,7 +105,7 @@ impl Bluetooth{
                         println!("    Characteristic UUID: {}", &uuid);
                         if uuid == ble_device.characteristic {
                             println!("    Found our characteristic!");
-                            ble_device.run.exec(char);
+                            (ble_device.run)(char).await;
 
                             
                             return Ok(None);
@@ -130,15 +137,19 @@ impl Bluetooth{
         let discover = adapter.discover_devices().await?;
         // pin discover (not going out of scope in async)
         pin_mut!(discover);
+        let mut discovered = HashSet::new();
         while let Some(evt) = discover.next().await {
             match evt {
                 AdapterEvent::DeviceAdded(addr) => {
+                    discovered.insert(addr);
+                    println!("discovered={}", discovered.len().to_string().blue());
                     // if another device connected, let's try to find our characteristics
                     let device = adapter.device(addr)?;
                     self.filter_and_run(&device).await?;
                 }
                 //AdapterEvent::PropertyChanged()
                 AdapterEvent::DeviceRemoved(addr) => {
+                    //discovered-=1;
                     println!("Removed device {addr}");
                 }
                 AdapterEvent::PropertyChanged(_)=>{}

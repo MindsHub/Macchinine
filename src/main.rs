@@ -1,11 +1,10 @@
 //! Connects to the Bluetooth GATT echo service and tests it.
 //! 
 mod bluetooth;
- use bluer::{gatt::remote::Characteristic, Device, Result};
- use bluer::{Uuid, AdapterEvent};
-
+ use bluer::Result;
+ use bluer::Uuid;
+ use colored::Colorize;
 use bluetooth::Bluetooth;
-use futures::{pin_mut, StreamExt};
 use rand::Rng;
 use std::time::Duration;
 use tokio::{
@@ -214,7 +213,7 @@ async fn main() -> bluer::Result<()> {
     sleep(Duration::from_secs(1)).await;
     Ok(())
 }*/
-async fn car_control(char: bluer::gatt::remote::Characteristic)->Result<()>{
+async fn old_car_control(char: bluer::gatt::remote::Characteristic)->Result<()>{
     let mut write_io = char.write_io().await?;
     println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
     let mut gilrs = Gilrs::new().unwrap();
@@ -225,67 +224,162 @@ async fn car_control(char: bluer::gatt::remote::Characteristic)->Result<()>{
         sleep(Duration::from_millis(30)).await;
         // Examine new events
         while let Some(Event {event, id: _, time: _}) = gilrs.next_event() {
-            match event{
-                gilrs::EventType::AxisChanged(axis, value, _) => {
-                    match axis{
-                        gilrs::Axis::LeftStickX => {
-                                steering = value as f64;
-                        },
-                        gilrs::Axis::LeftStickY => {
-                            forward = value as f64;
+            
+            if let gilrs::EventType::AxisChanged(axis, value, _) = event{
+                match axis{
+                    gilrs::Axis::LeftStickX => {
+                            steering = value as f64;
                     },
-                        _ => {}
-                    }
-                },
-                _ => {},
+                    gilrs::Axis::LeftStickY => {
+                        forward = value as f64;
+                    },
+                    _ => {}
+                }
             }
         }
         let diag = forward*forward+steering*steering;
         let diag = diag.sqrt();
         println!("{steering:.3}, {forward:.3}, {diag:.3}");
         if diag < 0.2{
-            let data: Vec<u8> = "s".as_bytes().into_iter().map(|x| x.clone()).collect();
+            let data: Vec<u8> = "s".as_bytes().to_vec();
             write_io.write_all(&data).await.expect("write failed");
             continue;
         }
-        if forward>0. && rng.gen_bool(forward/diag as f64){
-            let data: Vec<u8> = "f".as_bytes().into_iter().map(|x| x.clone()).collect();
-            write_io.write_all(&data).await.expect("write failed");
-            continue;
-            //send = send.add("r");
-        }
-        if forward<0. && rng.gen_bool(-forward/diag as f64){
-            let data: Vec<u8> = "b".as_bytes().into_iter().map(|x| x.clone()).collect();
-            write_io.write_all(&data).await.expect("write failed");
-            continue;
-        }
-        if steering>0. && rng.gen_bool(steering/diag as f64){
-            let data: Vec<u8> = "r".as_bytes().into_iter().map(|x| x.clone()).collect();
+        if forward>0. && rng.gen_bool(forward/diag){
+            let data: Vec<u8> = "f".as_bytes().to_vec();
             write_io.write_all(&data).await.expect("write failed");
             continue;
             //send = send.add("r");
         }
-        if steering<0. && rng.gen_bool(-steering/diag as f64){
-            let data: Vec<u8> = "l".as_bytes().into_iter().map(|x| x.clone()).collect();
+        if forward<0. && rng.gen_bool(-forward/diag){
+            let data: Vec<u8> = "b".as_bytes().to_vec();
             write_io.write_all(&data).await.expect("write failed");
             continue;
         }
-        let data: Vec<u8> = "s".as_bytes().into_iter().map(|x| x.clone()).collect();
+        if steering>0. && rng.gen_bool(steering/diag){
+            let data: Vec<u8> = "r".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+            //send = send.add("r");
+        }
+        if steering<0. && rng.gen_bool(-steering/diag){
+            let data: Vec<u8> = "l".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        let data: Vec<u8> = "s".as_bytes().to_vec();
         write_io.write_all(&data).await.expect("write failed");
         
         //println!("mandato f {steering}");
 
     }
-    Ok(())
+    //Ok(())
 }
+
+async fn car_control(char: bluer::gatt::remote::Characteristic)->Result<()>{
+    /*#include "JoystickDriver.c"
+#pragma DebuggerWindows("joystickSimple")
+float trim(float x){
+	if(x>1.0)
+		return 1.0;
+	if(x<-1.0)
+		return -1.0;
+	return x;
+}
+task main()
+{
+  while(1 == 1)
+  {
+    getJoystickSettings(joystick);
+    int y = joystick.joy1_y1;
+    int x = joystick.joy1_x1;//motor[motorB]
+    int power=sqrt(y*y+x*x)*100/255;
+    if(power>100)
+    	power=100;
+    float angle=atan2(x,y);
+    if(angle>0){
+    	motor[motorB]=power*trim(1.0-angle/PI*4.0);
+    	motor[motorC]=power*trim(3.0-angle/PI*4.0);
+    }else{
+    	motor[motorC]=power*trim(1.0+angle/PI*4.0);
+    	motor[motorB]=power*trim(3.0+angle/PI*4.0);
+  	}
+  }
+}
+ */
+
+    let mut write_io = char.write_io().await?;
+    println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
+    let mut gilrs = Gilrs::new().unwrap();
+    let mut steering= 0.0f64;
+    let mut forward= 0.0f64;
+    let mut rng = rand::thread_rng();
+    loop {
+        sleep(Duration::from_millis(30)).await;
+        // Examine new events
+        while let Some(Event {event, id: _, time: _}) = gilrs.next_event() {
+            
+            if let gilrs::EventType::AxisChanged(axis, value, _) = event{
+                match axis{
+                    gilrs::Axis::LeftStickX => {
+                            steering = value as f64;
+                    },
+                    gilrs::Axis::LeftStickY => {
+                        forward = value as f64;
+                    },
+                    _ => {}
+                }
+            }
+        }
+        let diag = forward*forward+steering*steering;
+        let diag = diag.sqrt();
+        println!("{steering:.3}, {forward:.3}, {diag:.3}");
+        if diag < 0.2{
+            let data: Vec<u8> = "s".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        if forward>0. && rng.gen_bool(forward/diag){
+            let data: Vec<u8> = "f".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+            //send = send.add("r");
+        }
+        if forward<0. && rng.gen_bool(-forward/diag){
+            let data: Vec<u8> = "b".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        if steering>0. && rng.gen_bool(steering/diag){
+            let data: Vec<u8> = "r".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+            //send = send.add("r");
+        }
+        if steering<0. && rng.gen_bool(-steering/diag){
+            let data: Vec<u8> = "l".as_bytes().to_vec();
+            write_io.write_all(&data).await.expect("write failed");
+            continue;
+        }
+        let data: Vec<u8> = "s".as_bytes().to_vec();
+        write_io.write_all(&data).await.expect("write failed");
+        
+        //println!("mandato f {steering}");
+
+    }
+    //Ok(())
+}
+
 async fn car1(char: bluer::gatt::remote::Characteristic){
     println!("controlling car 1");
-    car_control(char).await.unwrap();
+    old_car_control(char).await.unwrap();
 }
 async fn car2(char: bluer::gatt::remote::Characteristic){
-    println!("controlling car 2");
-    car_control(char).await.unwrap();
+    println!("{}", "controlling car 2".yellow());
+    old_car_control(char).await.unwrap();
 }
+
+
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> bluer::Result<()> {
@@ -297,7 +391,7 @@ async fn main() -> bluer::Result<()> {
     bl.add_device(
         Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
         Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
-        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(car2));
+        [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(), Box::new(car2));
         
     /*bl.add_device(
         Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
