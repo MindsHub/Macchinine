@@ -79,10 +79,10 @@ impl Bluetooth{
                 continue;
             }
             let ble_device = ble_device.unwrap();
-            if addr!=ble_device.address{
-                println!("wrong address");
+            /*if addr!=ble_device.address{
+                println!("wrong address {}!={}", addr, ble_device.address);
                 continue;
-            }
+            }*/
 
             println!("Device provides one of our services!");
 
@@ -102,7 +102,8 @@ impl Bluetooth{
                     println!("    Found our service!");
                     for char in service.characteristics().await? {
                         let uuid = char.uuid().await?;
-                        println!("    Characteristic UUID: {}", &uuid);
+                        println!("    Characteristic UUID: {}-{}", &uuid, ble_device.characteristic);
+
                         if uuid == ble_device.characteristic {
                             println!("    Found our characteristic!");
                             (ble_device.run)(char).await;
