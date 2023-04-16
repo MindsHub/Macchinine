@@ -1,53 +1,64 @@
-use std::{collections::{HashMap, HashSet}, pin::Pin};
+use std::{
+    collections::{HashMap, HashSet},
+    pin::Pin,
+};
 
-use bluer::{Uuid, Address, Error, AdapterEvent, Device, gatt::remote::Characteristic};
+use bluer::{gatt::remote::Characteristic, AdapterEvent, Address, Device, Error, Uuid};
 use colored::Colorize;
-use futures::{pin_mut, StreamExt, Future, executor::block_on};
-use tokio::runtime::Handle;
+use futures::{pin_mut, Future, StreamExt};
 
 //use crate::{find_our_characteristic, exercise_characteristic, SERVICE_UUID, CHARACTERISTIC_UUID};
 /*pub trait BlFunc{
     fn exec(&self, char: Characteristic);
 }
 impl<F, T> BlFunc for F
-where 
+where
     F: Fn(Characteristic)->T,
     T: Future<Output = ()>{
     fn exec(&self, char: Characteristic)
     {
         let y = Handle::current();
-        
+
         y.spawn(future)
         y.block_on(self(char));
-        
+
     }
 }*/
-struct BleDevice{
+struct BleDevice {
     service: Uuid,
     characteristic: Uuid,
     //address: Address,
-    run: Box<dyn Fn(Characteristic)->Pin<Box<dyn Future<Output = ()>>>>,
+    run: Box<dyn Fn(Characteristic) -> Pin<Box<dyn Future<Output = ()>>>>,
 }
 
-
-pub struct Bluetooth{
-
-    accepted: HashMap<Address, BleDevice>
+pub struct Bluetooth {
+    accepted: HashMap<Address, BleDevice>,
 }
 
-impl Bluetooth{
-    pub fn add_device<Fut>(&mut self, service: Uuid, characteristic: Uuid, address: Address, f: impl Fn(Characteristic)->Fut + 'static)
-        where Fut: Future<Output = ()> + 'static, 
+impl Bluetooth {
+    pub fn add_device<Fut>(
+        &mut self,
+        service: Uuid,
+        characteristic: Uuid,
+        address: Address,
+        f: impl Fn(Characteristic) -> Fut + 'static,
+    ) where
+        Fut: Future<Output = ()> + 'static,
     {
-        let device= BleDevice{characteristic, service, run: Box::new(move |x| { Box::pin(f(x)) })};
+        let device = BleDevice {
+            characteristic,
+            service,
+            run: Box::new(move |x| Box::pin(f(x))),
+        };
         self.accepted.insert(address, device);
     }
-    pub fn new()->Self{
-        Bluetooth{accepted: HashMap::new()}
+    pub fn new() -> Self {
+        Bluetooth {
+            accepted: HashMap::new(),
+        }
     }
 
-    
-    async fn connect_device(device: &Device)-> Result<(), Error>{
+    async fn connect_device(device: &Device) -> Result<(), Error> {
         println!("    Connecting...");
         let mut retries = 2;
         loop {
@@ -69,12 +80,12 @@ impl Bluetooth{
         println!("Discovered device {}", addr);
         println!("Name {:?}", device.name().await?);
         //check if we have it in our available connections
-        let ble_device  =self.accepted.get(&addr);
-        if ble_device.is_none(){
+        let ble_device = self.accepted.get(&addr);
+        if ble_device.is_none() {
             return Ok(None);
         }
         let ble_device = ble_device.unwrap();
-        
+
         //connetti
         if !device.is_connected().await? {
             Self::connect_device(device).await?;
@@ -85,17 +96,19 @@ impl Bluetooth{
         println!("getting services");
         println!("{:?}", device.services().await?);
         for service in device.services().await? {
-            if service.uuid().await? == ble_device.service{
+            if service.uuid().await? == ble_device.service {
                 println!("    Found our service!");
                 for char in service.characteristics().await? {
                     let uuid = char.uuid().await?;
-                    println!("    Characteristic UUID: {}-{}", &uuid, ble_device.characteristic);
+                    println!(
+                        "    Characteristic UUID: {}-{}",
+                        &uuid, ble_device.characteristic
+                    );
 
                     if uuid == ble_device.characteristic {
                         println!("    Found our characteristic!");
                         (ble_device.run)(char).await;
 
-                        
                         return Ok(None);
                     }
                 }
@@ -104,7 +117,7 @@ impl Bluetooth{
         Ok(None)
     }
 
-    pub async fn scan (&self) -> Result<(), Error>{
+    pub async fn scan(&self) -> Result<(), Error> {
         //get bl adapter
         let session = bluer::Session::new().await?;
         let adapter = session.default_adapter().await?;
@@ -116,7 +129,7 @@ impl Bluetooth{
             adapter.name(),
             adapter.address().await?
         );
-        
+
         // start scan
         let discover = adapter.discover_devices().await?;
         // pin discover (not going out of scope in async)
@@ -136,11 +149,10 @@ impl Bluetooth{
                     //discovered-=1;
                     println!("Removed device {addr}");
                 }
-                AdapterEvent::PropertyChanged(_)=>{}
+                AdapterEvent::PropertyChanged(_) => {}
             }
         }
-        
-        Ok(())
 
+        Ok(())
     }
 }
