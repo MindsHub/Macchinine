@@ -109,17 +109,12 @@ async fn main() -> bluer::Result<()> {
     let mut bl = Bluetooth::new();
     bl.add_device(
         Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-        Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
+        Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
         [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(car1));
-    /*bl.add_device(
+    bl.add_device(
         Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
         Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
-        [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(), Box::new(car2));*/
-        
-    /*bl.add_device(
-        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
-        Uuid::from_u128(0x0000110c00001000800000805f9b34fb),
-        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(), Box::new(y));    */
+        [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(), Box::new(car2));
     bl.scan().await.unwrap();
     Ok(())
 }
