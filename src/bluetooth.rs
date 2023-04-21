@@ -1,11 +1,13 @@
 use std::{
     collections::{HashMap, HashSet},
-    pin::Pin,
+    pin::Pin, sync::mpsc::Sender,
 };
 
 use bluer::{gatt::remote::Characteristic, AdapterEvent, Address, Device, Error, Uuid};
 use colored::Colorize;
 use futures::{pin_mut, Future, StreamExt};
+
+use crate::egui::RobotEvent;
 
 //use crate::{find_our_characteristic, exercise_characteristic, SERVICE_UUID, CHARACTERISTIC_UUID};
 /*pub trait BlFunc{
@@ -28,33 +30,35 @@ struct BleDevice {
     service: Uuid,
     characteristic: Uuid,
     //address: Address,
-    run: Box<dyn Fn(Characteristic) -> Pin<Box<dyn Future<Output = ()>>>>,
+    run: Box<dyn Fn(Characteristic, Sender<RobotEvent>) -> Pin<Box< dyn Future<Output = ()> >>> ,
 }
 
-pub struct Bluetooth {
+pub struct Bluetooth{
     accepted: HashMap<Address, BleDevice>,
+    sender: Sender<RobotEvent>,
 }
 
 impl Bluetooth {
     pub fn add_device<Fut>(
-        &mut self,
+        & mut self,
         service: Uuid,
         characteristic: Uuid,
         address: Address,
-        f: impl Fn(Characteristic) -> Fut + 'static,
+        f: impl Fn(Characteristic, Sender<RobotEvent>) -> Fut  + 'static,
     ) where
-        Fut: Future<Output = ()> + 'static,
+        Fut: Future<Output = ()>   + 'static,
     {
         let device = BleDevice {
             characteristic,
             service,
-            run: Box::new(move |x| Box::pin(f(x))),
+            run: Box::new(move |x, s| Box::pin(f(x, s))),
         };
         self.accepted.insert(address, device);
     }
-    pub fn new() -> Self {
+    pub fn new(sender: Sender<RobotEvent>) -> Self {
         Bluetooth {
             accepted: HashMap::new(),
+            sender,
         }
     }
 
@@ -107,7 +111,7 @@ impl Bluetooth {
 
                     if uuid == ble_device.characteristic {
                         println!("    Found our characteristic!");
-                        (ble_device.run)(char).await;
+                        (ble_device.run)(char, self.sender.clone()).await;
 
                         return Ok(None);
                     }

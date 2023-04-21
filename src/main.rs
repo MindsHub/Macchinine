@@ -5,10 +5,16 @@ use bluer::Result;
 use bluer::Uuid;
 use bluetooth::Bluetooth;
 use colored::Colorize;
+use egui::RobotEvent;
+use egui::start_gui;
 use gilrs::{Event, Gilrs};
 use std::f64::consts::PI;
+use std::sync::mpsc;
+use std::sync::mpsc::Sender;
+use std::thread::spawn;
 use std::time::Duration;
 use tokio::{io::AsyncWriteExt, time::sleep};
+mod egui;
 fn trim(v: f64) -> f64 {
     if v > 1.0 {
         return 1.0;
@@ -16,13 +22,13 @@ fn trim(v: f64) -> f64 {
     if v < -1.0 {
         return -1.0;
     }
-    return v;
+    v
 }
 
-async fn car_control(char: bluer::gatt::remote::Characteristic) -> Result<()> {
+async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) -> Result<()> {
     let mut write_io = char.write_io().await?;
     println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
-    let mut notify_io = char.notify_io().await?;
+    let notify_io = char.notify_io().await?;
     let mut gilrs = Gilrs::new().unwrap();
     let mut x = 0.0f64;
     let mut y = 0.0f64;
@@ -46,67 +52,52 @@ async fn car_control(char: bluer::gatt::remote::Characteristic) -> Result<()> {
                     }
                     _ => {}
                 }
+
             }
         }
-        /*/*
-          while(1 == 1)
-          {
-            getJoystickSettings(joystick);
-            int y = joystick.joy1_y1;
-            int x = joystick.joy1_x1;//motor[motorB]
-            int power=sqrt(y*y+x*x)*100/255;
-            if(power>100)
-                power=100;
-            float angle=atan2(x,y);
-            if(angle>0){
-                motor[motorB]=power*trim(1.0-angle/PI*4.0);
-                motor[motorC]=power*trim(3.0-angle/PI*4.0);
-            }else{
-                motor[motorC]=power*trim(1.0+angle/PI*4.0);
-                motor[motorB]=power*trim(3.0+angle/PI*4.0);
-              }
-          }
-        }
-         */ */
         let power = trim((x * x + y * y).sqrt());
         let angle = f64::atan2(x, y);
-        let principale = ((power * trim(3.0 - angle.abs() / PI * 4.0) * 7.0).round() as i8) as u8;
-        let secondario = ((power * trim(1.0 - angle.abs() / PI * 4.0) * 7.0).round() as i8) as u8;
-        //println!("{principale} {secondario}");
-        //println!("{:#010b} {:#010b}",(principale&(0x0f as u8)), secondario&(0x0f as u8));
-        if let Ok(read) = notify_io.try_recv(){
+        let principale = (power * trim(3.0 - angle.abs() / PI * 4.0)) as f32;
+        let principale_u8 = ((principale*7.0).round() as i8) as u8;
+        let secondario = (power * trim(1.0 - angle.abs() / PI * 4.0)) as f32;
+        let secondario_u8 = ((secondario * 7.0).round() as i8) as u8;
+
+        // se c'è qualcosa da leggere lo visualizziamo
+        if let Ok(read) = notify_io.try_recv() {
             if let Some(ultimo) = read.last() {
                 println!("{}-{}", read.len(), ultimo);
             }
         }
-        
 
         let to_send = if angle > 0. {
-            (principale & (0x0f as u8)) * 16 | (secondario & (0x0f as u8))
+            sender.send(RobotEvent::Motors(principale, secondario)).unwrap();
+            ((principale_u8 & (0x0f_u8)) * 16) | (secondario_u8 & (0x0f_u8))
         } else {
-            (secondario & (0x0f as u8)) * 16 | (principale & (0x0f as u8))
+            sender.send(RobotEvent::Motors(secondario, principale)).unwrap();
+            ((secondario_u8 & (0x0f_u8)) * 16) | (principale_u8 & (0x0f_u8))
+            
         };
-        if let Err(e) = write_io.write_all(&[to_send as u8]).await {
+        if let Err(e) = write_io.write_all(&[to_send]).await {
             println!("Errore {e:?}");
         }
 
         //println!("{:#010b}", to_send);
-        //notify_io.read_exact(&mut echo_buf).await
     }
 }
 
-async fn car1(char: bluer::gatt::remote::Characteristic) {
+async fn car1(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) {
     println!("controlling car 1");
-    car_control(char).await.unwrap();
+    car_control(char, sender).await.unwrap();
 }
-async fn car2(char: bluer::gatt::remote::Characteristic) {
+async fn car2(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) {
     println!("{}", "controlling car 2".yellow());
-    car_control(char).await.unwrap();
+    car_control(char, sender).await.unwrap();
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> bluer::Result<()> {
-    let mut bl = Bluetooth::new();
+async fn bluetooth<'a>(sender: Sender<RobotEvent>) -> bluer::Result<()> {
+    let mut bl = Bluetooth::new(sender);
+    
     bl.add_device(
         Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
         Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
@@ -120,5 +111,14 @@ async fn main() -> bluer::Result<()> {
         Box::new(car2),
     );
     bl.scan().await.unwrap();
+    Ok(())
+}
+fn main() -> bluer::Result<()> {
+    
+    let (sender, receiver) = mpsc::channel::<RobotEvent>();
+    let join = spawn(move || {bluetooth(sender)});
+    start_gui(receiver).unwrap();
+
+    join.join().unwrap().unwrap();
     Ok(())
 }
