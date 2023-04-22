@@ -123,7 +123,7 @@ signed int conv(signed char c) {
     }
 }
 
-int last_sent=0;
+int last_sent=0, last_received=0;
 void getBTData() {
   if(Serial.available()) {
     while(Serial.available())
@@ -139,11 +139,13 @@ void getBTData() {
       case '2': func_mode = ObstaclesAvoidance;             break;
       default:  break;
     } */
+  } else if (millis()-last_received>5000) {
+    moveFromBluetooth=0;
   }
-  if(millis()-last_sent>100){
+  /*if(millis()-last_sent>100){
       last_sent=millis();
       Serial.write((unsigned char) middleDistance);
-    }
+    }*/
 }/*
 void getIRData() {
   if (irrecv.decode(&results)){ 
@@ -181,9 +183,15 @@ void irremote_mode() {
 }*/
 
 void line_teacking_mode() {
-  if(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left){
-    set_motors(-255, -255);
-    while(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left);
+  if(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left){
+    int sx = conv((moveFromBluetooth&0xf0)>>4);
+    int dx = conv(moveFromBluetooth&0x0f);
+    if (sx+dx > 0) {
+      set_motors(sx>dx ? -255 : -200, sx>dx ? -200 : -255);
+    } else {
+      set_motors(sx>dx ? 255 : 200, sx>dx ? 200 : 255);
+    }
+    while(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left);
     delays(100);
   } 
 }
