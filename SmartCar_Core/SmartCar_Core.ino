@@ -1,5 +1,5 @@
 #include <IRremote.h>
-#include <Servo.h>  
+#include <Servo.h>
 
 /*#define f 16736925  // FORWARD
 #define b 16754775  // BACK
@@ -20,8 +20,8 @@
 #define KEY_HASH 16732845
 
 #define RECV_PIN  12
-#define ECHO_PIN  A4  
-#define TRIG_PIN  A5 
+#define ECHO_PIN  A4
+#define TRIG_PIN  A5
 #define ENA 5
 #define ENB 6
 #define IN1 7
@@ -123,12 +123,12 @@ signed int conv(signed char c) {
     }
 }
 
-int last_sent=0;
+int last_sent=0, last_received=0;
 void getBTData() {
   if(Serial.available()) {
     while(Serial.available())
       moveFromBluetooth=Serial.read();
-    
+
     /*switch(Serial.read()) {
       case 'f': func_mode = Bluetooth; mov_mode = FORWARD;  break;
       case 'b': func_mode = Bluetooth; mov_mode = BACK;     break;
@@ -139,14 +139,16 @@ void getBTData() {
       case '2': func_mode = ObstaclesAvoidance;             break;
       default:  break;
     } */
+  } else if (millis()-last_received>5000) {
+    moveFromBluetooth=0;
   }
-  if(millis()-last_sent>100){
+  /*if(millis()-last_sent>100){
       last_sent=millis();
       Serial.write((unsigned char) middleDistance);
-    }
+    }*/
 }/*
 void getIRData() {
-  if (irrecv.decode(&results)){ 
+  if (irrecv.decode(&results)){
     IR_PreMillis = millis();
     switch(results.value){
       case f:   func_mode = IRremote; mov_mode = FORWARD;  break;
@@ -177,22 +179,26 @@ void irremote_mode() {
       mov_mode = STOP;
       IR_PreMillis = millis();
     }
-  }   
+  }
 }*/
 
 void line_teacking_mode() {
-  if(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left){
+  if(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left){
     int sx = conv((moveFromBluetooth&0xf0)>>4);
     int dx = conv(moveFromBluetooth&0x0f);
-    set_motors(-sx, -dx);
-    while(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left);
+    if (sx+dx > 0) {
+      set_motors(sx>dx ? -255 : -200, sx>dx ? -200 : -255);
+    } else {
+      set_motors(sx>dx ? 255 : 200, sx>dx ? 200 : 255);
+    }
+    while(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left);
     delays(100);
-  } 
+  }
 }
 
 void obstacles_avoidance_mode() {
     middleDistance = getDistance();
-    
+
     if(middleDistance <= 20) {
       //stop();
       set_motors(0,0);
@@ -200,14 +206,14 @@ void obstacles_avoidance_mode() {
       servo.write(10);
       delays(1000);
       rightDistance = getDistance();
-      
+
       delays(500);
       servo.write(90);
       delays(1000);
       servo.write(170);
-      delays(1000); 
+      delays(1000);
       leftDistance = getDistance();
-      
+
       delays(500);
       servo.write(90);
       delays(1000);
@@ -227,8 +233,8 @@ void obstacles_avoidance_mode() {
         //set_motors(255,255);
         //forward();
       }
-   }  
-}  
+   }
+}
 void bluetooth_mode() {
   int sx = conv((moveFromBluetooth&0xf0)>>4);
   int dx = conv(moveFromBluetooth&0x0f);
