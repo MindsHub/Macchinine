@@ -9,6 +9,8 @@ use egui::RobotEvent;
 use egui::start_gui;
 use gilrs::{Event, Gilrs};
 use std::f64::consts::PI;
+use std::io;
+use std::io::Write;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::thread::spawn;
@@ -97,28 +99,37 @@ async fn carAltra(char: bluer::gatt::remote::Characteristic, sender: Sender<Robo
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn bluetooth(sender: Sender<RobotEvent>) -> bluer::Result<()> {
+async fn bluetooth(sender: Sender<RobotEvent>, use_hc08: bool) -> bluer::Result<()> {
     let mut bl = Bluetooth::new(sender);
 
-    bl.add_device(
-        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-        Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
-        [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(),
-        Box::new(carHC08),
-    );
-    bl.add_device(
-        Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-        Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
-        [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(),
-        Box::new(carAltra),
-    );
+    if use_hc08 {
+        bl.add_device(
+            Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+            Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+            [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(),
+            Box::new(carHC08),
+        );
+    } else {
+        bl.add_device(
+            Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+            Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
+            [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(),
+            Box::new(carAltra),
+        );
+    }
+
     bl.scan().await.unwrap();
     Ok(())
 }
 
 fn main() -> bluer::Result<()> {
+    print!("Scegli una macchina, inserisci a (HC-08) o b (altra): ");
+    io::stdout().flush().unwrap();
+    let use_hc08 = io::stdin().lines().next().unwrap_or(Ok(String::from("a"))).unwrap_or(String::from("a")) != "b";
+    println!("{}", if use_hc08 { "Uso HC-08" } else { "Uso l'altra" });
+
     let (sender, receiver) = mpsc::channel::<RobotEvent>();
-    let join = spawn(move || {bluetooth(sender)});
+    let join = spawn(move || {bluetooth(sender, use_hc08)});
     start_gui(receiver).unwrap();
 
     join.join().unwrap().unwrap();
