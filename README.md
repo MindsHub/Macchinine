@@ -15,8 +15,8 @@ cargo run
 
 ## MAC
 
-- `A8:10:87:67:73:2A` quella modificata con la batteria grossa
-- `48:87:2D:11:A6:F1` quella con le batteria blu (non modificata)
+- `A8:10:87:67:73:2A` quella modificata con la batteria grossa, con l'HC-08
+- `48:87:2D:11:A6:F1` quella con le batteria blu (non modificata), il bluetooth strano
 
 ## Per connettersi
 
