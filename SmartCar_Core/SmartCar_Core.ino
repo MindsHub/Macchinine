@@ -105,7 +105,7 @@ signed int conv(signed char c) {
     }
 
     switch(c){
-        case -7: return -255;
+        case -7: return -240;//-255;
         case -6: return -219;
         case -5: return -182;
         case -4: return -146;
@@ -119,7 +119,7 @@ signed int conv(signed char c) {
         case 4: return 146;
         case 5: return 182;
         case 6: return 219;
-        case 7: return 255;
+        case 7: return 240;//255;
     }
 }
 
@@ -182,7 +182,9 @@ void irremote_mode() {
 
 void line_teacking_mode() {
   if(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left){
-    set_motors(-255, -255);
+    int sx = conv((moveFromBluetooth&0xf0)>>4);
+    int dx = conv(moveFromBluetooth&0x0f);
+    set_motors(-sx, -dx);
     while(LineTeacking_Read_Right|| LineTeacking_Read_Middle || LineTeacking_Read_Left);
     delays(100);
   } 
