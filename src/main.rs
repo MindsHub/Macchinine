@@ -75,7 +75,7 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
         } else {
             sender.send(RobotEvent::Motors(secondario, principale)).unwrap();
             ((secondario_u8 & (0x0f_u8)) * 16) | (principale_u8 & (0x0f_u8))
-            
+
         };
         if let Err(e) = write_io.write_all(&[to_send]).await {
             println!("Errore {e:?}");
@@ -97,7 +97,7 @@ async fn car2(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEve
 #[tokio::main(flavor = "current_thread")]
 async fn bluetooth<'a>(sender: Sender<RobotEvent>) -> bluer::Result<()> {
     let mut bl = Bluetooth::new(sender);
-    
+
     bl.add_device(
         Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
         Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
@@ -113,8 +113,8 @@ async fn bluetooth<'a>(sender: Sender<RobotEvent>) -> bluer::Result<()> {
     bl.scan().await.unwrap();
     Ok(())
 }
+
 fn main() -> bluer::Result<()> {
-    
     let (sender, receiver) = mpsc::channel::<RobotEvent>();
     let join = spawn(move || {bluetooth(sender)});
     start_gui(receiver).unwrap();
