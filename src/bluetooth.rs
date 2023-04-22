@@ -125,7 +125,7 @@ impl Bluetooth {
         //get bl adapter
         let session = bluer::Session::new().await?;
         let adapter = session.default_adapter().await?;
-        adapter.set_powered(false).await?;
+//        adapter.set_powered(false).await?;
         //turn on adapter
         adapter.set_powered(true).await?;
         println!(
