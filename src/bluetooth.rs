@@ -91,11 +91,11 @@ impl Bluetooth {
         let ble_device = ble_device.unwrap();
 
         //connetti
-  /*      if !device.is_connected().await? {
+        if !device.is_connected().await? {
             Self::connect_device(device).await?;
         } else {
             println!("    Already connected");
-        }*/
+        }
 
         println!("getting services");
         println!("{:?}", device.services().await?);
