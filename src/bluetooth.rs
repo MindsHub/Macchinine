@@ -91,11 +91,11 @@ impl Bluetooth {
         let ble_device = ble_device.unwrap();
 
         //connetti
-        if !device.is_connected().await? {
+  /*      if !device.is_connected().await? {
             Self::connect_device(device).await?;
         } else {
             println!("    Already connected");
-        }
+        }*/
 
         println!("getting services");
         println!("{:?}", device.services().await?);
@@ -127,7 +127,7 @@ impl Bluetooth {
         let adapter = session.default_adapter().await?;
 //        adapter.set_powered(false).await?;
         //turn on adapter
-        adapter.set_powered(true).await?;
+//        adapter.set_powered(true).await?;
         println!(
             "Discovering on Bluetooth adapter {} with address {}\n",
             adapter.name(),
