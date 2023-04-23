@@ -44,7 +44,8 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
             time: _,
         }) = gilrs.next_event()
         {
-            if let gilrs::EventType::AxisChanged(axis, value, _) = event {
+            if let gilrs::EventType::AxisChanged(axis, value, code) = event {
+                println!("{code:?}");
                 match axis {
                     gilrs::Axis::LeftStickX => {
                         x = value as f64;
@@ -57,6 +58,8 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
 
             }
         }
+        /*let y = (y + 1f64) / 2f64;
+        let x = y * x;*/
         let power = trim((x * x + y * y).sqrt());
         let angle = f64::atan2(x, y);
         let principale = (power * trim(3.0 - angle.abs() / PI * 4.0)) as f32;
@@ -81,21 +84,19 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
             ((secondario_u8 & (0x0f_u8)) * 16) | (principale_u8 & (0x0f_u8))
 
         };
-        if let Err(e) = write_io.write_all(&[to_send]).await {
-            println!("Errore {e:?}");
-        }
+        write_io.write_all(&[to_send]).await?;
 
         //println!("{:#010b}", to_send);
     }
 }
 
-async fn carHC08(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) {
+async fn car_hc08(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) -> Result<()> {
     println!("controlling car with HC-08");
-    car_control(char, sender, true).await.unwrap();
+    return car_control(char, sender, true).await;
 }
-async fn carAltra(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) {
+async fn car_altra(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) -> Result<()> {
     println!("{}", "controlling car altra".yellow());
-    car_control(char, sender, false).await.unwrap();
+    return car_control(char, sender, false).await;
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -107,19 +108,18 @@ async fn bluetooth(sender: Sender<RobotEvent>, use_hc08: bool) -> bluer::Result<
             Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
             Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
             [0xA8, 0x10, 0x87, 0x67, 0x73, 0x2A].into(),
-            Box::new(carHC08),
+            Box::new(car_hc08),
         );
     } else {
         bl.add_device(
             Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
             Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
             [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(),
-            Box::new(carAltra),
+            Box::new(car_altra),
         );
     }
 
-    bl.scan().await.unwrap();
-    Ok(())
+    bl.scan().await
 }
 
 fn main() -> bluer::Result<()> {
@@ -129,9 +129,15 @@ fn main() -> bluer::Result<()> {
     println!("{}", if use_hc08 { "Uso HC-08" } else { "Uso l'altra" });
 
     let (sender, receiver) = mpsc::channel::<RobotEvent>();
-    let join = spawn(move || {bluetooth(sender, use_hc08)});
+    let join = spawn(move || {
+        while let Err(e) = bluetooth(sender.clone(), use_hc08) {
+            println!("Error: {e}");
+            std::thread::sleep(Duration::from_secs(3));
+            println!("Retrying");
+        }
+    });
     start_gui(receiver).unwrap();
 
-    join.join().unwrap().unwrap();
+    join.join().unwrap();
     Ok(())
 }

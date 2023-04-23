@@ -30,7 +30,7 @@ struct BleDevice {
     service: Uuid,
     characteristic: Uuid,
     //address: Address,
-    run: Box<dyn Fn(Characteristic, Sender<RobotEvent>) -> Pin<Box< dyn Future<Output = ()> >>> ,
+    run: Box<dyn Fn(Characteristic, Sender<RobotEvent>) -> Pin<Box< dyn Future<Output = bluer::Result<()>> >>> ,
 }
 
 pub struct Bluetooth{
@@ -44,9 +44,9 @@ impl Bluetooth {
         service: Uuid,
         characteristic: Uuid,
         address: Address,
-        f: impl Fn(Characteristic, Sender<RobotEvent>) -> Fut  + 'static,
+        f: impl Fn(Characteristic, Sender<RobotEvent>) -> Fut + 'static,
     ) where
-        Fut: Future<Output = ()>   + 'static,
+        Fut: Future<Output = bluer::Result<()>> + 'static,
     {
         let device = BleDevice {
             characteristic,
@@ -81,7 +81,7 @@ impl Bluetooth {
 
     pub async fn filter_and_run(&self, device: &Device) -> Result<Option<Characteristic>, Error> {
         let addr = device.address();
-        println!("Discovered device {}", addr);
+        println!("Discovered device {addr}");
         println!("Name {:?}", device.name().await?);
         //check if we have it in our available connections
         let ble_device = self.accepted.get(&addr);
@@ -111,7 +111,7 @@ impl Bluetooth {
 
                     if uuid == ble_device.characteristic {
                         println!("    Found our characteristic!");
-                        (ble_device.run)(char, self.sender.clone()).await;
+                        (ble_device.run)(char, self.sender.clone()).await?;
 
                         return Ok(None);
                     }
