@@ -128,6 +128,7 @@ void getBTData() {
   if(Serial.available()) {
     while(Serial.available())
       moveFromBluetooth=Serial.read();
+    last_received=millis();
 
     /*switch(Serial.read()) {
       case 'f': func_mode = Bluetooth; mov_mode = FORWARD;  break;
