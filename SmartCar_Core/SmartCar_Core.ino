@@ -266,5 +266,5 @@ void loop() {
   bluetooth_mode();
   //irremote_mode();
   line_teacking_mode();
-  obstacles_avoidance_mode();
+  //obstacles_avoidance_mode();
 }
