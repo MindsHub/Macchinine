@@ -123,7 +123,8 @@ signed int conv(signed char c) {
     }
 }
 
-int last_sent=0, last_received=0;
+int last_sent=0;
+unsigned long last_received=0;
 void getBTData() {
   if(Serial.available()) {
     while(Serial.available())
@@ -142,6 +143,7 @@ void getBTData() {
     } */
   } else if (millis()-last_received>5000) {
     moveFromBluetooth=0;
+    last_received=millis();
   }
   /*if(millis()-last_sent>100){
       last_sent=millis();
@@ -192,7 +194,7 @@ void line_teacking_mode() {
     } else {
       set_motors(sx>dx ? 255 : 200, sx>dx ? 200 : 255);
     }
-    while(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left);
+    while(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left) getBTData();
     delays(100);
   }
 }
