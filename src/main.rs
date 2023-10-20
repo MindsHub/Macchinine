@@ -36,7 +36,8 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
     let mut y = 0.0f64;
 
     loop {
-        sleep(Duration::from_millis(30)).await;
+        sleep(Duration::from_millis(50)).await;
+        
         // Examine new events
         while let Some(Event {
             event,
@@ -45,7 +46,7 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
         }) = gilrs.next_event()
         {
             if let gilrs::EventType::AxisChanged(axis, value, code) = event {
-                println!("{code:?}");
+                //println!("{code:?}");
                 match axis {
                     gilrs::Axis::LeftStickX => {
                         x = value as f64;
@@ -85,7 +86,7 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
 
         };
         write_io.write_all(&[to_send]).await?;
-
+        write_io.flush().await?;
         //println!("{:#010b}", to_send);
     }
 }
