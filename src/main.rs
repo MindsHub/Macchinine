@@ -41,11 +41,10 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
         // Examine new events
         while let Some(Event {
             event,
-            id: _,
-            time: _,
+            ..
         }) = gilrs.next_event()
         {
-            if let gilrs::EventType::AxisChanged(axis, value, code) = event {
+            if let gilrs::EventType::AxisChanged(axis, value, _) = event {
                 //println!("{code:?}");
                 match axis {
                     gilrs::Axis::LeftStickX => {
@@ -67,7 +66,7 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
         let principale_u8 = ((principale*7.0).round() as i8) as u8;
         let secondario = (power * trim(1.0 - angle.abs() / PI * 4.0)) as f32;
         let secondario_u8 = ((secondario * 7.0).round() as i8) as u8;
-
+        println!("sending {principale_u8} {secondario_u8}");
         // se c'è qualcosa da leggere lo visualizziamo
         if let Some(notify_io) = &notify_io {
             if let Ok(read) = notify_io.try_recv() {
@@ -85,6 +84,8 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
             ((secondario_u8 & (0x0f_u8)) * 16) | (principale_u8 & (0x0f_u8))
 
         };
+        //let to_send=0x77;
+        println!("{}", to_send);
         write_io.write_all(&[to_send]).await?;
         write_io.flush().await?;
         //println!("{:#010b}", to_send);

@@ -130,7 +130,7 @@ void getBTData() {
     while(Serial.available())
       moveFromBluetooth=Serial.read();
     last_received=millis();
-
+   
     /*switch(Serial.read()) {
       case 'f': func_mode = Bluetooth; mov_mode = FORWARD;  break;
       case 'b': func_mode = Bluetooth; mov_mode = BACK;     break;
@@ -246,7 +246,7 @@ void bluetooth_mode() {
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   servo.attach(3,500,2400);// 500: 0 degree  2400: 180 degree
   servo.write(90);
   irrecv.enableIRIn();
@@ -261,13 +261,12 @@ void setup() {
   pinMode(LineTeacking_Pin_Right, INPUT);
   pinMode(LineTeacking_Pin_Middle, INPUT);
   pinMode(LineTeacking_Pin_Left, INPUT);
+  set_motors(0, 0);
+ // set_motors(-200, -200);
 }
 
 void loop() {
   getBTData();
-  //getIRData();
   bluetooth_mode();
-  //irremote_mode();
-  line_teacking_mode();
-  //obstacles_avoidance_mode();
+
 }

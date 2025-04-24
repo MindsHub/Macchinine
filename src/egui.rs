@@ -1,9 +1,9 @@
 use std::{f32::consts::PI, sync::mpsc::Receiver, time::Duration};
 
 use eframe::{
-    egui::{self, Sense, Painter},
+    egui::{self, CornerRadius, Painter, Sense, StrokeKind},
     emath::RectTransform,
-    epaint::{Color32, Pos2, Rect, RectShape, Rounding, Stroke, Shape, pos2},
+    epaint::{pos2, Color32, Pos2, Rect, RectShape, Shape, Stroke},
 };
 
 
@@ -14,14 +14,12 @@ pub enum RobotEvent{
 pub fn start_gui(receiver: Receiver<RobotEvent>) -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
 
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
-        ..Default::default()
-    };
+    let mut options = eframe::NativeOptions::default();
+    options.viewport=options.viewport.with_inner_size((320.0, 240.0));
     eframe::run_native(
         "Robot comand panel",
         options,
-        Box::new(|_cc| Box::new(MyApp::default(receiver))),
+        Box::new(|_cc| Ok(Box::new(MyApp::default(receiver)))),
     )
 }
 
@@ -69,23 +67,27 @@ impl<'a> CarDrawer<'a>{
     fn draw_tier(&self, p: Pos2, power: f32){
         let s= 0.05;
         let green = (127.+127.*power) as u8;
-        self.painter.add(Shape::Rect(RectShape { 
-            rect: Rect{
+        self.painter.add(Shape::Rect(RectShape::new( 
+            Rect{
                 min: self.to_screen.transform_pos(pos2(p.x-s, f32::min(p.y, p.y-0.15*power))),
                 max: self.to_screen.transform_pos(pos2(p.x+s, f32::max(p.y, p.y-0.15*power)))
             },
-            rounding: Rounding::none(),
-            fill: Color32::from_rgb(255-green, green , 0),
-            stroke: Stroke{width: 0.0, color: Color32::WHITE} }));
+            CornerRadius::ZERO,
+            Color32::from_rgb(255-green, green , 0),
+            Stroke{width: 0.0, color: Color32::WHITE},
+            StrokeKind::Inside, // doesn't matter
+        )));
 
-        self.painter.add(Shape::Rect(RectShape { 
-            rect: Rect{
+        self.painter.add(Shape::Rect(RectShape::new( 
+            Rect{
                 min: self.to_screen.transform_pos(pos2(p.x-s, p.y-0.15)),
                 max: self.to_screen.transform_pos(pos2(p.x+s, p.y+0.15))
             },
-            rounding: Rounding::none(),
-            fill: Color32::TRANSPARENT,
-            stroke: Stroke{width: 1.0, color: Color32::WHITE} }));
+            CornerRadius::ZERO,
+            Color32::TRANSPARENT,
+            Stroke{width: 1.0, color: Color32::WHITE},
+            StrokeKind::Inside, // doesn't matter
+            )));
     }
     fn draw_arc(&self, s: f32, e: f32, r: f32){
         let mut prec= pos2(r*s.cos(), r*s.sin());
