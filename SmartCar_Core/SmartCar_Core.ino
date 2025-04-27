@@ -1,4 +1,4 @@
-#include <IRremote.h>
+//#include <IRremote.h>
 #include <Servo.h>
 
 /*#define f 16736925  // FORWARD
@@ -38,8 +38,8 @@
 #define carSpeed 250
 
 Servo servo;
-IRrecv irrecv(RECV_PIN);
-decode_results results;
+//IRrecv irrecv(RECV_PIN);
+//decode_results results;
 unsigned long IR_PreMillis;
 unsigned long LT_PreMillis;
 int rightDistance = 0, leftDistance = 0, middleDistance = 0;
@@ -249,7 +249,7 @@ void setup() {
   Serial.begin(115200);
   servo.attach(3,500,2400);// 500: 0 degree  2400: 180 degree
   servo.write(90);
-  irrecv.enableIRIn();
+  //irrecv.enableIRIn();
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(IN1, OUTPUT);
@@ -262,6 +262,7 @@ void setup() {
   pinMode(LineTeacking_Pin_Middle, INPUT);
   pinMode(LineTeacking_Pin_Left, INPUT);
   set_motors(0, 0);
+ // set_motors(255,-255);
  // set_motors(-200, -200);
 }
 

@@ -15,7 +15,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::thread::spawn;
 use std::time::Duration;
-use tokio::{io::AsyncWriteExt, time::sleep};
+use tokio::time::sleep;
 mod egui;
 fn trim(v: f64) -> f64 {
     if v > 1.0 {
@@ -28,8 +28,8 @@ fn trim(v: f64) -> f64 {
 }
 
 async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>, do_notify: bool) -> Result<()> {
-    let mut write_io = char.write_io().await?;
-    println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
+    //let mut write_io = char.write_io().await?;
+    //println!("    Obtained write IO with MTU {} bytes", write_io.mtu());
     let notify_io = if do_notify { Some(char.notify_io().await?) } else { None };
     let mut gilrs = Gilrs::new().unwrap();
     let mut x = 0.0f64;
@@ -86,8 +86,8 @@ async fn car_control(char: bluer::gatt::remote::Characteristic, sender: Sender<R
         };
         //let to_send=0x77;
         println!("{}", to_send);
-        write_io.write_all(&[to_send]).await?;
-        write_io.flush().await?;
+        char.write(&[to_send]).await?;
+        //char.flush().await?;
         //println!("{:#010b}", to_send);
     }
 }
@@ -98,7 +98,7 @@ async fn car_hc08(char: bluer::gatt::remote::Characteristic, sender: Sender<Robo
 }
 async fn car_altra(char: bluer::gatt::remote::Characteristic, sender: Sender<RobotEvent>) -> Result<()> {
     println!("{}", "controlling car altra".yellow());
-    return car_control(char, sender, false).await;
+    return car_control(char, sender, true).await;
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -115,8 +115,10 @@ async fn bluetooth(sender: Sender<RobotEvent>, use_hc08: bool) -> bluer::Result<
     } else {
         bl.add_device(
             Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-            Uuid::from_u128(0x0000ffe200001000800000805f9b34fb),
-            [0x48, 0x87, 0x2D, 0x11, 0xA6, 0xF1].into(),
+            //00805f9b34fb-0000ffe2-0000-1000-8000-00805f9b34fb
+            Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+            [0x01, 0x23, 0x45, 0x67, 0xAA, 0x19].into(),
+            //01:23:45:67:AA:19
             Box::new(car_altra),
         );
     }

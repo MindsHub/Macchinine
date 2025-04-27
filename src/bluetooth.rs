@@ -105,10 +105,9 @@ impl Bluetooth {
                 for char in service.characteristics().await? {
                     let uuid = char.uuid().await?;
                     println!(
-                        "    Characteristic UUID: {}-{}",
+                        "    Characteristic UUID: {}!={}",
                         &uuid, ble_device.characteristic
                     );
-
                     if uuid == ble_device.characteristic {
                         println!("    Found our characteristic!");
                         (ble_device.run)(char, self.sender.clone()).await?;
