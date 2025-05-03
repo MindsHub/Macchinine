@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    ndkVersion "29.0.13113456"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.mindshub.macchinine"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            //shrinkResources true
+            //minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            //packagingOptions {
+            //    doNotStrip '**/*.so'
+            //}
+            //debuggable true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    namespace 'com.mindshub.macchinine'
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+    // To use the Android Frame Pacing library
+    //implementation "androidx.games:games-frame-pacing:1.9.1"
+
+    // To use the Android Performance Tuner
+    //implementation "androidx.games:games-performance-tuner:1.5.0"
+
+    // To use the Games Activity library
+    implementation "androidx.games:games-activity:1.1.0"
+
+    // To use the Games Controller Library
+    //implementation "androidx.games:games-controller:1.1.0"
+
+    // To use the Games Text Input Library
+    //implementation "androidx.games:games-text-input:1.1.0"
+    //implementation 'com.github.deviceplug:jni-utils-rs:0.1.1'
+    //implementation 'com.github.gedgygedgy.rust:jni-utils:0.1.1-SNAPSHOT'
+    //implementation 'io.github.gedgygedgy.rust:jni-utils:0.1.1-SNAPSHOT'
+    //implementation 'com.github.gedgygedgy:jni-utils-rs:master-SNAPSHOT'
+}
+

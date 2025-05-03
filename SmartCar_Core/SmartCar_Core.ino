@@ -1,11 +1,11 @@
 //#include <IRremote.h>
 #include <Servo.h>
-
+#define MAX_POWA 200
 /*#define f 16736925  // FORWARD
 #define b 16754775  // BACK
 #define l 16720605  // LEFT
 #define r 16761405  // RIGHT
-#define s 16712445  // STOP*/
+#define s 16712445  // STOP*/                    socket.channel_mut(CHANNEL_ID).receive()
 #define KEY1 16738455 //Line Teacking mode
 #define KEY2 16750695 //Obstacles Avoidance mode
 #define KEY3 16756815
@@ -90,7 +90,7 @@ void set_motors(int sx, int dx){
     digitalWrite(IN2,HIGH);
   }
   if(dx>0){
-    digitalWrite(IN3,LOW);
+    digitalWrite(IN3,LOW);                    socket.channel_mut(CHANNEL_ID).receive()
     digitalWrite(IN4,HIGH);
   }else{
     digitalWrite(IN3,HIGH);
@@ -190,9 +190,9 @@ void line_teacking_mode() {
     int sx = conv((moveFromBluetooth&0xf0)>>4);
     int dx = conv(moveFromBluetooth&0x0f);
     if (sx+dx > 0) {
-      set_motors(sx>dx ? -255 : -200, sx>dx ? -200 : -255);
+      set_motors(sx>dx ? -255 : -MAX_POWA, sx>dx ? -MAX_POWA : -255);
     } else {
-      set_motors(sx>dx ? 255 : 200, sx>dx ? 200 : 255);
+      set_motors(sx>dx ? 255 : MAX_POWA, sx>dx ? MAX_POWA : 255);
     }
     while(LineTeacking_Read_Right || LineTeacking_Read_Middle || LineTeacking_Read_Left) getBTData();
     delays(100);

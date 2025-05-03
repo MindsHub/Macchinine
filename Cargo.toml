@@ -1,18 +1,58 @@
 [package]
 name = "macchinine"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gilrs = "0.11.0"
-#rand = "0.8.5"
+log = "0.4"
+winit = { version = "0.28", features = [ "android-game-activity" ] }
+wgpu = "0.16.0"
+pollster = "0.2"
+egui = "0.22"
+eframe = { version = "0.22", features = [ "wgpu", "android-game-activity" ] }
+egui_demo_lib = "0.22"
+btleplug = {git="https://github.com/deviceplug/btleplug.git" }
+tokio= { version = "*", features = ["full"] }
+uuid="*"
+image = { version = "0.25",  default-features=false, features = ["jpeg"] }
+once_cell = "1.21.3"
+futures = "0.3"
+thiserror = "2.0"
+matchbox_socket="0.11"
+bincode = {version="2.0", features = ["serde"]}
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "rustls-tls"] }
+[target.'cfg(not(target_os = "android"))'.dependencies]
+env_logger = "0.10"
+gilrs="0.11"
 
-futures = "0.3.31"
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.13.1"
+jni = "0.19"
+jni-utils="0.1.1"
+#jni-utils={git="https://github.com/deviceplug/jni-utils-rs", features = ["build-java-support"]}
 
-bluer = { version = "0.17.3", features = ["bluetoothd"], default-features = false }
-tokio = {version="1.27.0", features=["rt"]}
-colored = "3.0.0"
 
-eframe = "0.31.1"
+#btleplug ={git="https://github.com/deviceplug/btleplug.git", features = ["android"]}
+[features]
+default = ["remote_master"]
+desktop = []
+remote_master = ["desktop"]
+local_master = ["desktop"]
+
+[lib]
+name="main"
+crate-type=["cdylib", "lib"]
+
+[[bin]]
+path="src/lib.rs"
+name="macchinine-desktop"
+required-features = [ "desktop" ]
+
+
+[[bin]]
+path="src/bin/master.rs"
+name="master"
+required-features = [ "desktop" ]

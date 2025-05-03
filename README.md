@@ -1,28 +1,17 @@
-# Setup
+This tests using `GameActivity` with egui, winit and wgpu.
 
-## Per installare Rust
-
-```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-## Per eseguire Rust
+This is based on a re-worked winit backend here:
+https://github.com/rib/winit/tree/android-activity
 
 ```
-sudo apt install libdbus-1-dev pkg-config libudev-dev
-cargo run
-```
+export ANDROID_NDK_HOME="path/to/ndk"
+export ANDROID_HOME="path/to/sdk"
 
-## MAC
+rustup target add aarch64-linux-android
+cargo install cargo-ndk
 
-- `A8:10:87:67:73:2A` quella modificata con la batteria grossa, con l'HC-08
-- `48:87:2D:11:A6:F1` quella con le batteria blu (non modificata), il bluetooth strano
-
-## Per connettersi
-
-```
-bluetoothctl
-$ scan on # poi aspettare che compaia il mac della macchinina
-$ pair <MAC> # non serve se si ha gia' fatto il pairing
-$ connect <MAC> # non serve se si ha eseguito il comando sopra
+cargo ndk -t arm64-v8a -o app/src/main/jniLibs/  build
+./gradlew build
+./gradlew installDebug
+adb shell am start -n co.realfit.agdkeframe/.MainActivity
 ```
