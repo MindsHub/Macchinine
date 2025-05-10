@@ -1,20 +1,13 @@
 use std::{sync::mpsc, time::Duration};
 
+#[cfg(feature = "local_master")]
 use btleplug::{api::Characteristic, platform::Peripheral};
 use eframe::NativeOptions;
 use main::{
-    Message, RUNTIME_STORAGE,
-    ble::connect,
-    camera,
-    egui_wrapper::{GuiCommand, GuiEvent, start_gui},
-    get_remote,
-    joistick::{self, get_input_from_joistick},
-    recv_messages, send_message,
-    setup::create_runtime,
+    ble::connect, egui_wrapper::{start_gui, GuiCommand, GuiEvent}, get_remote, joistick::{self, get_input_from_joistick}, recv_messages, send_message, setup::create_runtime, Message, RUNTIME_STORAGE
 };
 use pollster::FutureExt;
 use tokio::time::sleep;
-use uuid::Uuid;
 
 #[cfg(all(feature = "local_master", feature = "remote_master"))]
 compile_error!("Feature 1 and 2 are mutually exclusive and cannot be enabled together");
@@ -81,7 +74,8 @@ fn main() {
         
     });
     run_time.spawn(async move {
-        let ble: Option<(Peripheral, Characteristic)> = None;
+        #[cfg(feature = "local_master")]
+        let mut ble: Option<(Peripheral, Characteristic)> = None;
         let joistick_reciver = get_input_from_joistick().await;
         sender_event_gui.send(GuiEvent::Motors(0.0, 0.0)).unwrap();
         loop {

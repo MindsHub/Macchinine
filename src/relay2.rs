@@ -77,7 +77,7 @@ pub async fn recv_messages(r: &mut RemoteReader) -> Option<Message> {
             bincode::decode_from_slice::<Chunk, _>(&buf[0..x], bincode::config::standard())
         {   
             log::error!("Received chunk:");
-            let t = r.buf.entry(chunk.packet_id).or_insert(Default::default());
+            let t = r.buf.entry(chunk.packet_id).or_default();
             t.insert(chunk.chunk_index, chunk.data);
             if t.len() == chunk.packet_count {
                 log::error!("all parts: {:?}", t.len());

@@ -21,7 +21,7 @@ pub async fn connect(
 
     // get the first bluetooth adapter
     let adapters = manager.adapters().await?;
-    let central = adapters.into_iter().nth(0).unwrap();
+    let central = adapters.into_iter().next().unwrap();
 
     let mut events = central.events().await?;
     // start scanning for devices, while filtering for the services we want
@@ -41,7 +41,7 @@ pub async fn connect(
                     }
                     peripheral.connect().await?;
                     peripheral.discover_services().await?;
-                    if peripheral.services().iter().find(|x| x.uuid==service).is_none() {
+                    if !peripheral.services().iter().any(|x| x.uuid==service) {
                         peripheral.disconnect().await?;
                         log::error!("Characteristic not found");
                         continue;

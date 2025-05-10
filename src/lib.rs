@@ -58,7 +58,6 @@ fn _main(options: NativeOptions) -> eframe::Result<()> {
     let (mut remote_writer, mut remote_reader) = run_time.spawn(get_remote()).block_on().unwrap();
     //send to remote
     run_time.spawn(async move {
-        
         log::error!("Connected starting listening to commands");
         let mut time_last_image = Instant::now();
         loop {
@@ -74,7 +73,7 @@ fn _main(options: NativeOptions) -> eframe::Result<()> {
                         "Recved image from camera, sending to send_loop: {:?}",
                         c.len()
                     );
-                    send_message(&mut remote_writer, Message::Img(c.into())).await;
+                    send_message(&mut remote_writer, Message::Img(c)).await;
                 }
             }
         }
@@ -87,13 +86,10 @@ fn _main(options: NativeOptions) -> eframe::Result<()> {
                 log::error!("Recved command from remote: {:?}", x);
                 recv = Some(x);
             }
-            match recv {
-                Some(Message::Motors(x, y)) => {
-                    log::error!("Recved motors command from remote: {:?}", (x, y));
-                    send_ble.send(convert_to_ble(x, y)).unwrap();
-                    sender_gui_event.send(GuiEvent::Motors(x, y)).unwrap();
-                }
-                _ => {}
+            if let Some(Message::Motors(x, y)) = recv {
+                log::error!("Recved motors command from remote: {:?}", (x, y));
+                send_ble.send(convert_to_ble(x, y)).unwrap();
+                sender_gui_event.send(GuiEvent::Motors(x, y)).unwrap();
             }
         }
     });

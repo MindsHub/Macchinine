@@ -37,7 +37,7 @@ jni-utils="0.1.1"
 
 #btleplug ={git="https://github.com/deviceplug/btleplug.git", features = ["android"]}
 [features]
-default = ["remote_master"]
+default = []
 desktop = []
 remote_master = ["desktop"]
 local_master = ["desktop"]

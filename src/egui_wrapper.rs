@@ -3,7 +3,7 @@ use image;
 use std::{
     f32::consts::PI,
     sync::mpsc::{Receiver, Sender},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use eframe::{
@@ -166,15 +166,7 @@ impl<'a> CarDrawer<'a> {
             prec = cur;
         }
     }
-    fn draw_circle(&self, p: Pos2, r: f32) {
-        let mut prec = pos2(p.x + r, p.y);
-        for i in 1..=100 {
-            let a = 2. * PI / 100.0 * i as f32;
-            let cur = pos2(p.x + r * a.cos(), p.y + r * a.sin());
-            self.draw_line([prec, cur]);
-            prec = cur;
-        }
-    }
+    
     fn draw(painter: &'a Painter, to_screen: &'a RectTransform, car: &Car) {
         let s = Self { painter, to_screen };
         s.draw_tier(pos2(0.22, 0.17), car.dx);
