@@ -21,7 +21,7 @@ pub enum GuiEvent {
     Disconnected,
 }
 pub enum GuiCommand {
-    Connect(BDAddr, Uuid, Uuid),
+    Connect{addr: BDAddr, char: Uuid, serv: Uuid},
 }
 
 pub fn start_gui(
@@ -259,17 +259,18 @@ impl eframe::App for MyApp {
                 ui.checkbox(&mut self.use_hc_08, "Uso l'hc-08?");
                 if ui.button("connetti").clicked() {
                     let cmd = if self.use_hc_08 {
-                        GuiCommand::Connect(
-                            BDAddr::from_str_no_delim("A8108767732A").unwrap(),
-                            Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-                            Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
-                        )
+                        GuiCommand::Connect{
+                            addr: BDAddr::from_str_no_delim("A8108767732A").unwrap(),
+                            //0000ffe1-0000-1000-8000-00805f9b34fb
+                            serv: Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+                            char: Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+                        }
                     } else {
-                        GuiCommand::Connect(
-                            BDAddr::from_str_no_delim("01234567AA19").unwrap(),
-                            Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
-                            Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
-                        )
+                        GuiCommand::Connect{
+                            addr: BDAddr::from_str_no_delim("01234567AA19").unwrap(),
+                            serv: Uuid::from_u128(0x0000ffe000001000800000805f9b34fb),
+                            char: Uuid::from_u128(0x0000ffe100001000800000805f9b34fb),
+                        }
                     };
                     self.send_command.send(cmd).unwrap();
                 }

@@ -82,8 +82,8 @@ fn main() {
             #[cfg(feature = "local_master")]
             if let Ok(ev) = receiver_command_gui.try_recv() {
                 match ev {
-                    GuiCommand::Connect(addr, service, charac) => {
-                        if let Ok(b) = connect(addr, service, charac).await {
+                    GuiCommand::Connect{addr, serv, char} => {
+                        if let Ok(b) = connect(addr, serv, char).await {
                             ble = Some(b);
                             sender_event_gui.send(GuiEvent::Connected).unwrap();
                         }
