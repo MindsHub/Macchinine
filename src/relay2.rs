@@ -27,7 +27,7 @@ pub async fn get_remote() -> (RemoteWriter, RemoteReader) {
     #[cfg(target_os = "android")]
     let remote_addr = "172.28.93.183:9876";
     #[cfg(not(target_os = "android"))]
-    let remote_addr = "172.28.108.180:9876";
+    let remote_addr = "172.28.144.143:9876";
 
     let _ = sock.connect(remote_addr).await;
 
