@@ -81,7 +81,7 @@ fn main() {
         
     });
     run_time.spawn(async move {
-        let ble: Option<(Peripheral, Characteristic)> = None;
+        let mut ble: Option<(Peripheral, Characteristic)> = None;
         let joistick_reciver = get_input_from_joistick().await;
         sender_event_gui.send(GuiEvent::Motors(0.0, 0.0)).unwrap();
         loop {
